@@ -189,7 +189,7 @@ def load_hcp_dset_path(
     test_set: float = 0.15,
     random_state: int = 42,
     tasks: str = ["rest1"],
-    sessions: str = ["01"],
+    sessions: str = ["ses-01"],
 ) -> Dict:
     """Load time series of HCP.
     
