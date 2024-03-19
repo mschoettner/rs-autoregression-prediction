@@ -233,7 +233,7 @@ def load_hcp_dset_path(
     train_subjects, val_subjects = gss_val.split(train_subjects, groups=groups_train)
     
     # construct path
-    subject_path_template = "/hcp/{task}/sub-{sub}/ses-{ses}/sub-{sub}_task-{task}_ses-{ses}_timeseries_scale-{scale}"
+    subject_path_template = "/{task}/sub-{sub}/ses-{ses}/sub-{sub}_task-{task}_ses-{ses}_desc-timeseries_scale-{scale}"
     
     data_dict = {} # dict with hdf5 file paths
     for name, set in zip(["train", "val", "test"], [train_subjects, val_subjects, test_subjects]):

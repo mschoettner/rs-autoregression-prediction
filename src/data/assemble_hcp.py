@@ -29,6 +29,10 @@ for task in ["rest1", "rest2", "wm", "emotion", "gambling", "motor", "language",
     for subject in subjects:
         for ses in ["ses-01", "ses-02"]:
             for scale in range(1,6):
-                timeseries = pd.read_csv(Path(timeseries_dir, task, "derivatives", "preproc", subject, ses, f"sub-{subject}_task-{task}_{ses}_desc-timeseries_scale-{scale}.csv"), sep="\t", index_col=0)
+                ts_sub_dir = Path(timeseries_dir, task, "derivatives", "preproc", subject, ses, f"{subject}_task-{task}_{ses}_desc-timeseries_scale-{scale}.csv")
+                # skip missing data
+                if os.path.exists(ts_sub_dir) == False:
+                    continue
+                timeseries = pd.read_csv((ts_sub_dir), index_col=0)
                 with h5py.File(path_concat, "a") as h5file:
-                    h5file.create_dataset(f"{task}/{subject}/{ses}/{subject}_task-{task}_{ses}_timeseries_scale-{scale}", data=timeseries.values)
+                    h5file.create_dataset(f"{task}/{subject}/{ses}/{subject}_task-{task}_{ses}_desc-timeseries_scale-{scale}", data=timeseries.values)
