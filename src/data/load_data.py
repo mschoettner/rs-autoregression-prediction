@@ -181,21 +181,21 @@ def load_ukbb_dset_path(
     return {"train": train, "val": val, "test": test}
 
 def load_hcp_dset_path(
-    path: Union[Path, str],
     path_restricted: Union[Path, str],
+    path_subjects: Union[Path, str],
     atlas_scale: int = 3,
     n_sample: int = 100,
     val_set: float = 0.15,
     test_set: float = 0.15,
     random_state: int = 42,
-    tasks: str = ["rest1"],
-    sessions: str = ["ses-01"],
+    tasks: List[str] = ["rest1"],
+    sessions: List[str] = ["ses-01"],
 ) -> Dict:
     """Load time series of HCP.
     
     Args:
-        path (Union[Path, str]): Path to the hdf5 file.
         path_restricted (Union[Path, str]): Path to the restricted behavioral HCP data.
+        path_subjects (Union[Path, str]): Path to the list of subjects to use.
         atlas_scale (int): The scale of the Lausanne 2018 atlas to use.
         n_sample (int, optional): number of subjects to use.
             Defaults to 50, and -1 would take the full sample.
@@ -208,10 +208,8 @@ def load_hcp_dset_path(
     Returns:
         Dict: hdf5 file paths for train, val, and test sets.
     """
-    
     # get the participant IDs to use
-    with h5py.File(path, "r") as h5file:
-        subjects = list(h5file["hcp"].keys())
+    subjects = load_hcp_subjects(path_subjects)
     
     # get list of participant IDs if only a subset of subjects is used
     if n_sample == -1:
@@ -228,12 +226,14 @@ def load_hcp_dset_path(
     groups = load_hcp_groups(path_restricted, subjects)
     gss_test = GroupShuffleSplit(n_splits=1, test_size=test_set, random_state=random_state)
     gss_val = GroupShuffleSplit(n_splits=1, test_size=val_set / (1 - test_set), random_state=random_state)
-    train_subjects, test_subjects = gss_test.split(subjects,  groups=groups)
+    train_idx, test_idx = next(gss_test.split(subjects,  groups=groups))
+    train_subjects, test_subjects = subjects[train_idx], subjects[test_idx]
     groups_train = groups[train_subjects]
-    train_subjects, val_subjects = gss_val.split(train_subjects, groups=groups_train)
+    train_idx, val_idx = next(gss_val.split(train_subjects, groups=groups_train))
+    train_subjects, val_subjects = train_subjects[train_idx], train_subjects[val_idx]
     
     # construct path
-    subject_path_template = "/{task}/sub-{sub}/ses-{ses}/sub-{sub}_task-{task}_ses-{ses}_desc-timeseries_scale-{scale}"
+    subject_path_template = "/{task}/sub-{sub}/{ses}/sub-{sub}_task-{task}_{ses}_desc-timeseries_scale-{scale}"
     
     data_dict = {} # dict with hdf5 file paths
     for name, set in zip(["train", "val", "test"], [train_subjects, val_subjects, test_subjects]):
@@ -243,16 +243,21 @@ def load_hcp_dset_path(
                 for ses in sessions:
                     cur_sub_path = subject_path_template.format(sub=sub, task=task, ses=ses, scale=atlas_scale)
                     data_list.append(cur_sub_path)
+        data_list.sort()
         data_dict[name] = data_list
     return data_dict
 
 def load_hcp_groups(path_restricted: Union[Path, str], subjects: List[str]):
     # load restricted data
-    data_res = pd.read_csv(Path(path_restricted, "hcp_behavioral_RESTRICTED.csv"), index_col=0)
+    data_res = pd.read_csv(path_restricted, index_col=0)
     # only use subset with imaging data
     data_res = data_res.loc[subjects]
     groups = data_res['Family_ID']
     return groups
+
+def load_hcp_subjects(path_subjects):
+    subjects = pd.read_csv(path_subjects, header=None)[0].to_numpy()
+    return subjects
 
 
 def load_data(
