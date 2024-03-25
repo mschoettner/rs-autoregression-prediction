@@ -22,7 +22,8 @@ pip install h5py==3.6.0 \
     nilearn==0.9.2 \
     tqdm==4.64.1 \
     darts==0.16.0
-pip install -e src/fmri_autoreg
+# pip install -e src/fmri_autoreg
+pip install git+https://github.com/htwangtw/fmri-autoreg.git@2024.02.0
 
 module load rust
 
