@@ -20,8 +20,7 @@ pip install --no-index \
 pip install pandas==1.3.0 --no-binary :all:
 pip install h5py==3.6.0 \
     nilearn==0.9.2 \
-    tqdm==4.64.1 \
-    darts==0.16.0
+    tqdm==4.64.1
 # pip install -e src/fmri_autoreg
 pip install git+https://github.com/htwangtw/fmri-autoreg.git@2024.02.0
 
