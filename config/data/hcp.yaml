@@ -4,10 +4,13 @@ defaults:
   - preprocessing
 
 data_file: inputs/connectomes/hcp.h5
-split: # training an evaluation
+split: # training and evaluation
   _target_: src.data.load_data.load_hcp_dset_path
   path: inputs/connectomes/hcp.h5
-  n_sample: -1
+  n_sample: 100
   val_set: 0.15
   test_set: 0.15
   random_state: ${random_state}
+  tasks: ["rest1"]
+  sessions: ["ses-01"]
+  atlas_scale: 3
