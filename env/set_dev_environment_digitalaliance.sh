@@ -22,7 +22,7 @@ pip install h5py==3.6.0 \
     tqdm==4.64.1 \
     darts==0.16.0 \
     pandas==1.3.0
-pip install -e src/fmri_autoreg
+pip install git+https://github.com/htwangtw/fmri-autoreg.git@2024.02.0
 
 pip install -r env/requirements.txt
 module load rust
