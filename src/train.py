@@ -25,6 +25,7 @@ from hydra.utils import get_original_cwd, instantiate, to_absolute_path
 from omegaconf import DictConfig, OmegaConf
 from seaborn import lineplot
 from sklearn.metrics import r2_score
+from data.load_data import load_data
 
 # A logger for this file
 log = logging.getLogger(__name__)
@@ -33,7 +34,6 @@ log = logging.getLogger(__name__)
 @hydra.main(version_base="1.3", config_path="../config", config_name="train")
 def main(params: DictConfig) -> None:
     """Train model using parameters dict and save results."""
-    from src.data.load_data import load_data
 
     env = submitit.JobEnvironment()
     output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
