@@ -14,9 +14,10 @@ pip install --no-index -r env/requirements.txt
 pip install git+https://github.com/Epistimio/orion.git@v0.2.7
 pip install git+https://github.com/Epistimio/sample-space.git@v1.0.0
 pip install nilearn==0.9.2 hydra-orion-sweeper==1.6.4 hydra-submitit-launcher==1.2.0
-pip install -e fmri_autoreg
+# pip install -e fmri_autoreg
+pip install git+:https://github.com/htwangtw/fmri-autoreg.git:2024.03.2
 pip install -e .
 # style related things below. Feel free to ignore
 module load rust
 pip install -r env/requirements-dev.txt
-pre-commit install
+# pre-commit install
