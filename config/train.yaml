@@ -2,7 +2,7 @@
 defaults:
   - _self_
   - model: chebnet
-  - data: ukbb
+  - data: hcp
   - hydra: default
 
 verbose: 2
