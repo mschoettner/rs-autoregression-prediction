@@ -11,6 +11,9 @@
 # source env/dev/bin/activate
 #!/bin/bash
 
+# we need a lot of old things....
+# module load gentoo/2020
+
 TORCH=1.13.1
 CUDA=cu117  # options: cpu, cu116, cu117
 
