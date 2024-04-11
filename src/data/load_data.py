@@ -198,7 +198,7 @@ def load_hcp_dset_path(
         path_subjects (Union[Path, str]): Path to the list of subjects to use.
         atlas_scale (int): The scale of the Lausanne 2018 atlas to use.
         n_sample (int, optional): number of subjects to use.
-            Defaults to 50, and -1 would take the full sample.
+            Defaults to 100, and -1 would take the full sample.
         val_set (float, optional): proportion of the validation set
             size in relation to the full sample. Defaults to 0.15.
         test_set (float, optional): proportion of the test set size
@@ -248,6 +248,20 @@ def load_hcp_dset_path(
     return data_dict
 
 def load_hcp_groups(path_restricted: Union[Path, str], subjects: List[str]):
+    """Loads the HCP group data, i.e., which families subjects belong to
+
+    Parameters
+    ----------
+    path_restricted : Union[Path, str]
+        Path to the restricted part of the HCP data set
+    subjects : List[str]
+        For which subjects to get this data
+
+    Returns
+    -------
+    Series
+        Pandas series with family group data
+    """
     # load restricted data
     data_res = pd.read_csv(path_restricted, index_col=0)
     # only use subset with imaging data
@@ -256,6 +270,18 @@ def load_hcp_groups(path_restricted: Union[Path, str], subjects: List[str]):
     return groups
 
 def load_hcp_subjects(path_subjects):
+    """Reads the subject IDs of the HCP data
+
+    Parameters
+    ----------
+    path_subjects : str
+        Path to the csv file with the subject IDs
+
+    Returns
+    -------
+    array
+        Subject IDs
+    """
     subjects = pd.read_csv(path_subjects, header=None)[0].to_numpy()
     return subjects
 
