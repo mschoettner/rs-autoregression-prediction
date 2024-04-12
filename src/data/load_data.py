@@ -286,14 +286,15 @@ def load_hcp_subjects(path_subjects):
     return subjects
 
 def create_shortened_hcp_data(data_dict, h5dset_path, tmp_path, fraction=1):
+    os.mkdir(tmp_path)
     for set in data_dict.keys():
         with h5py.File(h5dset_path, "r") as h5file:
             for p in data_dict[set]:
-                ts = h5file[p].to_numpy()
-                time_points_total = ts.shape[1]
+                ts = np.array(h5file[p])
+                time_points_total = ts.shape[0]
                 time_points_shortened = int(time_points_total // (1 / fraction))
-                ts_shortened = ts[:,:time_points_shortened]
-                with h5py.File(tmp_path, "w") as tmpfile:
+                ts_shortened = ts[:time_points_shortened]
+                with h5py.File(Path(tmp_path, "hcp.h5"), "a") as tmpfile:
                     tmpfile.create_dataset(p, data=ts_shortened)
 
 def load_data(
