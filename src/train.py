@@ -21,6 +21,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from seaborn import lineplot
 from sklearn.metrics import r2_score
+from src.data.load_data import create_shortened_hcp_data
 
 
 def convert_bytes(num):
@@ -74,6 +75,15 @@ def main(params: DictConfig) -> None:
     # load data path
     n_sample = params["data"]["split"]["n_sample"]
     data_reference = instantiate(params["data"]["split"])
+    
+    # create temporary data file if only subset of time points is used for HCP
+    if params["data"]["data_file"] == "inputs/connectomes/hcp.h5":
+        if params["data"]["fraction_timepoints"] != 1:
+            create_shortened_hcp_data(data_reference,
+                                    params["data"]["data_file"],
+                                    params["data"]["tmp_path"],
+                                    params["data"]["fraction_timepoints"])
+            params["data"]["data_file"] = Path(params["data"]["tmp_path"], "hcp.h5")
 
     with open(Path(output_dir) / "train_test_split.json", "w") as f:
         json.dump(data_reference, f, indent=2)
