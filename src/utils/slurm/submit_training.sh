@@ -21,10 +21,20 @@ python src/train.py --multirun  \
 # scaling over subjects
 python src/train.py --multirun  \
   hydra/launcher=submitit_slurm \
-  ++data.n_sample=100,200,300,400,500,600,700,900,-1 \
+  ++data.n_sample=100,200,300,400,500,600,700,800,900,-1 \
   ++hydra.launcher.account=rrg-pbellec \
   ++hydra.launcher.timeout_min=180 \
-  ++hydra.launcher.mem_gb=32 \
+  ++hydra.launcher.mem_gb=4 \
+  ++hydra.launcher.gpus_per_node=1 \
+  ++hydra.launcher.cpus_per_task=4 \
+  ++random_state=1,2,3,5,8,13,21,34,55,89
+
+python src/train.py --multirun  \
+  hydra/launcher=submitit_slurm \
+  ++data.n_sample=800 \
+  ++hydra.launcher.account=rrg-pbellec \
+  ++hydra.launcher.timeout_min=180 \
+  ++hydra.launcher.mem_gb=4 \
   ++hydra.launcher.gpus_per_node=1 \
   ++hydra.launcher.cpus_per_task=4 \
   ++random_state=1,2,3,5,8,13,21,34,55,89
@@ -39,27 +49,12 @@ python src/train.py --multirun  \
   ++hydra.launcher.gpus_per_node=1 \
   ++hydra.launcher.cpus_per_task=4
 
-# test with sessions 1 and 2
-python src/train.py --multirun  \
-  ++data.n_sample=100 \
-  ++data.split.sessions='["ses-01", "ses-02"]'
-
-# test with rest1 and rest2
-python src/train.py --multirun  \
-  ++data.n_sample=100 \
-  ++data.split.tasks='["rest1", "rest2"]'
-
-# test hyperparameter tuning
-python src/train.py --multirun  \
-  hydra=hyperparameters \
-  ++data.n_sample=100
-
-# run hyperparameter tuning
+# run hyperparameter tuning with one session
 python src/train.py --multirun \
   hydra=hyperparameters \
   ++data.n_sample=-1 \
-  ++data.split.tasks='["rest1", "rest2"]' \
-  ++data.split.sessions='["ses-01", "ses-02"]'
+  # ++data.split.tasks='["rest1", "rest2"]' \
+  # ++data.split.sessions='["ses-01", "ses-02"]'
 
 # Hao-Ting's examples
 # use a small set to make sure the parameter tuning is doing things
