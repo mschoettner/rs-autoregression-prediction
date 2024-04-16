@@ -37,7 +37,7 @@ launcher:
   gpus_per_task:
   mem_per_gpu:
   mem_per_cpu:
-  account: ${oc.env:SLURM_COMPUTE_ACCOUNT}
+  account: rrg-pbellec # ${oc.env:SLURM_COMPUTE_ACCOUNT}
   signal_delay_s: 120
   max_num_timeout: 0
   additional_parameters: {mail-user: '${oc.env:SLACK_EMAIL_BOT}', mail-type: ALL}
