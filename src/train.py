@@ -163,24 +163,11 @@ def main(params: DictConfig) -> None:
     g.set_ylabel("Loss (MSE)")
     plt.savefig(Path(output_dir) / "training_losses.png")
 
-    if mean_r2_val > 1:
-        log.warning("R2 score is greater than 1. This is unexpected.")
-        mean_r2_val = -1
-
-    # use the mean r2 val as the objective for hyperparameter tuning
-    if params.return_type == "float":
-        return mean_r2_val
-
-    if params.return_type == "dict":
-        return {"name": "objective", "type": "objective", "value": mean_r2_val}
-
-    if params.return_type == "list":
-        return [
-            {"name": "objective", "type": "objective", "value": mean_r2_val}
-        ]
-
-    if params.return_type == "none":
-        return None
+    # minimise objective for hyperparameter tuning
+    if mean_r2_val < 0 or mean_r2_val > 1:
+        return 1  # invalid r2 score means bad fit
+    else:
+        return 1 - mean_r2_val
 
 
 if __name__ == "__main__":
