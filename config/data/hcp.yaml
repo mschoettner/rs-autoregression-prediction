@@ -2,7 +2,7 @@
 data_file: inputs/connectomes/hcp.h5
 standardize: True
 n_embed: 274 # for atlas scale 3
-n_sample: 100 
+n_sample: -1
 fraction_timepoints: 1
 tmp_path: /scratch/mschoett/${now:%Y-%m-%d}_${now:%H-%M-%S}_frac-${data.fraction_timepoints}_rs-${random_state}
 
@@ -14,6 +14,6 @@ split: # training and evaluation
   test_set: 0.15
   n_sample: ${data.n_sample}
   random_state: ${random_state}
-  tasks: ['rest1']
-  sessions: ['ses-01']
+  tasks: ['rest1','rest2']
+  sessions: ['ses-01','ses-02']
   atlas_scale: 3
