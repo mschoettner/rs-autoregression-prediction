@@ -31,15 +31,18 @@ python src/train.py --multirun  \
   ++data.split.sessions="['ses-01','ses-02']" \
   ++data.split.tasks="['rest1','rest2']" \
 
+# rerun those that ran out of time
 python src/train.py --multirun  \
   hydra/launcher=submitit_slurm \
-  ++data.n_sample=800 \
+  ++data.n_sample=900 \
   ++hydra.launcher.account=rrg-pbellec \
-  ++hydra.launcher.timeout_min=180 \
+  ++hydra.launcher.timeout_min=1000 \
   ++hydra.launcher.mem_gb=4 \
   ++hydra.launcher.gpus_per_node=1 \
   ++hydra.launcher.cpus_per_task=4 \
-  ++random_state=1,2,3,5,8,13,21,34,55,89
+  ++random_state=1 \
+  ++data.split.sessions="['ses-01','ses-02']" \
+  ++data.split.tasks="['rest1','rest2']"
 
 # train model on 100 subjects and half the time points
 python src/train.py --multirun  \
@@ -53,8 +56,13 @@ python src/train.py --multirun  \
 
 # run hyperparameter tuning with one session
 python src/train.py --multirun \
-  hydra=hyperparameters \
+  hydra=hyperparameters_old \
   ++data.n_sample=-1 \
+
+# run hyperparameter tuning with all sessions
+python src/train.py --multirun \
+  hydra=hyperparameters_old \
+  # ++data.n_sample=-1 \
   # ++data.split.tasks='["rest1", "rest2"]' \
   # ++data.split.sessions='["ses-01", "ses-02"]'
 
