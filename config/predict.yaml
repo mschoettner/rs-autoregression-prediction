@@ -5,5 +5,7 @@ defaults:
 
 predict_variable: gender
 phenotype_file: inputs/behavior/hcp_pheno.csv
+percentage_sample: 100
+random_state: 42
 # passing extracted feature path is necessary for evaluation
 feature_path: ???
