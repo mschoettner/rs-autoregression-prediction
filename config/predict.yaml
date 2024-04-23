@@ -3,7 +3,7 @@ defaults:
   - _self_
   - extract
 
-predict_variable: sex
-phenotype_file: inputs/connectomes/sourcedata/ukbb/ukbb_pheno.tsv
+predict_variable: gender
+phenotype_file: inputs/behavior/hcp_pheno.csv
 # passing extracted feature path is necessary for evaluation
 feature_path: ???
