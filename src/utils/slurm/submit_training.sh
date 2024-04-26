@@ -13,8 +13,8 @@ python src/train.py --multirun  \
   hydra/launcher=submitit_slurm \
   ++data.n_sample=-1 \
   ++hydra.launcher.account=rrg-pbellec \
-  ++hydra.launcher.timeout_min=90 \
-  ++hydra.launcher.mem_gb=32 \
+  ++hydra.launcher.timeout_min=900 \
+  ++hydra.launcher.mem_gb=4 \
   ++hydra.launcher.gpus_per_node=1 \
   ++hydra.launcher.cpus_per_task=4 \
 
@@ -23,48 +23,30 @@ python src/train.py --multirun  \
   hydra/launcher=submitit_slurm \
   ++data.n_sample=100,200,300,400,500,600,700,800,900,-1 \
   ++hydra.launcher.account=rrg-pbellec \
-  ++hydra.launcher.timeout_min=720 \
+  ++hydra.launcher.timeout_min=1000 \
   ++hydra.launcher.mem_gb=4 \
   ++hydra.launcher.gpus_per_node=1 \
   ++hydra.launcher.cpus_per_task=4 \
   ++random_state=1,2,3,5,8,13,21,34,55,89 \
-  ++data.split.sessions="['ses-01','ses-02']" \
-  ++data.split.tasks="['rest1','rest2']" \
 
-# rerun those that ran out of time
-python src/train.py --multirun  \
+# Scaling over time points
+python src/train.py --multirun \
   hydra/launcher=submitit_slurm \
-  ++data.n_sample=900 \
   ++hydra.launcher.account=rrg-pbellec \
   ++hydra.launcher.timeout_min=1000 \
   ++hydra.launcher.mem_gb=4 \
   ++hydra.launcher.gpus_per_node=1 \
   ++hydra.launcher.cpus_per_task=4 \
-  ++random_state=1 \
-  ++data.split.sessions="['ses-01','ses-02']" \
-  ++data.split.tasks="['rest1','rest2']"
+  ++data.sessions=0.25,0.5,1,2,4 \
+  ++random_state=1,2,3,5,8,13,21,34,55,89
 
-# train model on 100 subjects and half the time points
-python src/train.py --multirun  \
-  hydra/launcher=submitit_slurm \
-  ++data.fraction_timepoints=0.5 \
-  ++hydra.launcher.account=rrg-pbellec \
-  ++hydra.launcher.timeout_min=90 \
-  ++hydra.launcher.mem_gb=4 \
-  ++hydra.launcher.gpus_per_node=1 \
-  ++hydra.launcher.cpus_per_task=4
-
-# run hyperparameter tuning with one session
+# run hyperparameter tuning with old parameters
 python src/train.py --multirun \
   hydra=hyperparameters_old \
-  ++data.n_sample=-1 \
 
-# run hyperparameter tuning with all sessions
+# run hyperparameter tuning with new parameters
 python src/train.py --multirun \
-  hydra=hyperparameters_old \
-  # ++data.n_sample=-1 \
-  # ++data.split.tasks='["rest1", "rest2"]' \
-  # ++data.split.sessions='["ses-01", "ses-02"]'
+  hydra=hyperparameters
 
 # Hao-Ting's examples
 # use a small set to make sure the parameter tuning is doing things
