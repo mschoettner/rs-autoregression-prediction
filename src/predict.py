@@ -99,7 +99,7 @@ def main(params: DictConfig) -> None:
             pass
     log.info(f"Predicting {params['predict_variable']}.")
 
-    if params["predict_variable"] == "sex":
+    if params["predict_variable"] == "sex" or params["predict_variable"] == "gender":
         # four baseline models for sex
         svm = LinearSVC(C=100, penalty="l2", max_iter=1000000, random_state=42)
         lr = LogisticRegression(
@@ -124,8 +124,23 @@ def main(params: DictConfig) -> None:
             random_state=42,
         )
         clf_names = ["SVM", "LinearR", "Ridge", "MLP"]
+        
+    elif params["predict_variable"] in ["mental_health", "cognition", "processing_speed", "substance_use"]:
+        # four baseline models for factor scores
+        svm = LinearSVC(C=100, penalty="l2", max_iter=1000000, random_state=42)
+        lr = LogisticRegression(
+            penalty="l2", max_iter=100000, random_state=42, n_jobs=-1
+        )
+        rr = RidgeClassifier(random_state=42, max_iter=100000)
+        mlp = MLPClassifier(
+            hidden_layer_sizes=(64, 64),
+            max_iter=100000,
+            random_state=42,
+        )
+        clf_names = ["SVM", "LogisticR", "Ridge", "MLP"]
+        
     else:
-        raise ValueError("predict_variable must be either sex or age")
+        raise ValueError("predict_variable must be either sex, gender, age, or one of the factor scores")
 
     baselines_df = {
         "feature": [],
