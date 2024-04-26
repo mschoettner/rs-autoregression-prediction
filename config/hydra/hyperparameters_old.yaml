@@ -65,7 +65,7 @@ sweeper:
 
 launcher:
   submitit_folder: ${hydra.sweep.dir}/.submitit/%j
-  timeout_min: 600
+  timeout_min: 1000
   cpus_per_task: 4
   gpus_per_node: 1
   tasks_per_node: 1
