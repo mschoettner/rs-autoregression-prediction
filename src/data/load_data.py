@@ -185,11 +185,10 @@ def load_hcp_dset_path(
     path_subjects: Union[Path, str],
     atlas_scale: int = 3,
     n_sample: int = -1,
+    n_sessions = 4,
     val_set: float = 0.15,
     test_set: float = 0.15,
     random_state: int = 42,
-    tasks: List[str] = ["rest1"],
-    sessions: List[str] = ["ses-01"],
 ) -> Dict:
     """Load time series of HCP.
     
@@ -199,6 +198,8 @@ def load_hcp_dset_path(
         atlas_scale (int): The scale of the Lausanne 2018 atlas to use.
         n_sample (int, optional): number of subjects to use.
             Defaults to -1, corresponding to the full sample.
+        n_sessions (optional): number of sessions to use.
+            Defaults to 4, can be one of 0.25, 0.5, 1, 2, 4.
         val_set (float, optional): proportion of the validation set
             size in relation to the full sample. Defaults to 0.15.
         test_set (float, optional): proportion of the test set size
@@ -233,16 +234,14 @@ def load_hcp_dset_path(
     train_subjects, val_subjects = train_subjects[train_idx], train_subjects[val_idx]
     
     # construct path
-    subject_path_template = "/{task}/sub-{sub}/{ses}/sub-{sub}_task-{task}_{ses}_desc-timeseries_scale-{scale}"
+    subject_path_template = "/rest/sub-{sub}/sessions-{n_sessions}/sub-{sub}_task-rest_sessions-{n_sessions}_desc-timeseries_scale-3"
     
     data_dict = {} # dict with hdf5 file paths
     for name, set in zip(["train", "val", "test"], [train_subjects, val_subjects, test_subjects]):
         data_list = []
         for sub in set:
-            for task in tasks:
-                for ses in sessions:
-                    cur_sub_path = subject_path_template.format(sub=sub, task=task, ses=ses, scale=atlas_scale)
-                    data_list.append(cur_sub_path)
+            cur_sub_path = subject_path_template.format(sub=sub, n_sessions=n_sessions, scale=atlas_scale)
+            data_list.append(cur_sub_path)
         data_list.sort()
         data_dict[name] = data_list
     return data_dict
