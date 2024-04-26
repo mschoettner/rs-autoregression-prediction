@@ -184,7 +184,7 @@ def load_hcp_dset_path(
     path_restricted: Union[Path, str],
     path_subjects: Union[Path, str],
     atlas_scale: int = 3,
-    n_sample: int = 100,
+    n_sample: int = -1,
     val_set: float = 0.15,
     test_set: float = 0.15,
     random_state: int = 42,
@@ -198,7 +198,7 @@ def load_hcp_dset_path(
         path_subjects (Union[Path, str]): Path to the list of subjects to use.
         atlas_scale (int): The scale of the Lausanne 2018 atlas to use.
         n_sample (int, optional): number of subjects to use.
-            Defaults to 100, and -1 would take the full sample.
+            Defaults to -1, corresponding to the full sample.
         val_set (float, optional): proportion of the validation set
             size in relation to the full sample. Defaults to 0.15.
         test_set (float, optional): proportion of the test set size
@@ -433,6 +433,9 @@ def get_model_data(
     ]
     n_total = len(participant_id)
     df_phenotype = load_phenotype(phenotype_file)
+    # make sure index is the right type
+    if type(df_phenotype.index[0]) != str:
+        df_phenotype.index = df_phenotype.index.astype(str, copy=False)
     # get the common subject in participant_id and df_phenotype
     participant_id = list(set(participant_id) & set(df_phenotype.index))
     # get extra subjects in participant_id
@@ -481,8 +484,8 @@ def load_phenotype(path: Union[Path, str]) -> pd.DataFrame:
     """
     df = pd.read_csv(
         path,
-        sep="\t",
-        dtype={"participant_id": str, "age": float, "sex": str, "site": str},
+        # sep="\t",
+        # dtype={"participant_id": str, "age": float, "sex": str, "site": str},
     )
     df = df.set_index("participant_id")
     return df
