@@ -58,7 +58,7 @@ for factor in factors:
                     ts = pd.read_csv((ts_path), index_col=0)
                     ts_list.append(ts)
             timeseries = pd.concat(ts_list, axis=0)
-        h5_sub_dir = f"rest/sub-{subject}/{factor}-sessions/sub-{subject}_task-rest_sessions-{factor}_desc-timeseries_scale-3"
+        h5_sub_dir = f"rest/sub-{subject}/sessions-{factor}/sub-{subject}_task-rest_sessions-{factor}_desc-timeseries_scale-3"
         h5file = h5py.File(Path(out_folder, f"hcp_{factor}.h5"), 'a')
         # check if time series already exists
         if h5_sub_dir in h5file:
