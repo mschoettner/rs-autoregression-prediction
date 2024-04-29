@@ -1,17 +1,22 @@
-# train on 100 HCP subjects with different random seeds
+# train on 100 HCP subjects, one session, interactively
+python src/train.py --multirun  \
+  ++data.n_sample=100 \
+  ++data.sessions=0.25
+
+# train on 100 HCP subjects, one session
 python src/train.py --multirun  \
   hydra/launcher=submitit_slurm \
+  ++data.n_sample=100 \
+  ++data.sessions=1 \
   ++hydra.launcher.account=rrg-pbellec \
   ++hydra.launcher.timeout_min=90 \
   ++hydra.launcher.mem_gb=4 \
   ++hydra.launcher.gpus_per_node=1 \
-  ++hydra.launcher.cpus_per_task=4 \
-  ++random_state=1,2,3,5,8,13,21,34,55,89
+  ++hydra.launcher.cpus_per_task=4
 
 # train one model on all subjects
 python src/train.py --multirun  \
   hydra/launcher=submitit_slurm \
-  ++data.n_sample=-1 \
   ++hydra.launcher.account=rrg-pbellec \
   ++hydra.launcher.timeout_min=900 \
   ++hydra.launcher.mem_gb=4 \
