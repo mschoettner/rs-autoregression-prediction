@@ -14,14 +14,24 @@ python src/train.py --multirun  \
   ++hydra.launcher.gpus_per_node=1 \
   ++hydra.launcher.cpus_per_task=4
 
+# train on 1000 HCP subjects, one session
+python src/train.py --multirun  \
+  hydra/launcher=submitit_slurm \
+  ++data.sessions=1 \
+  ++hydra.launcher.account=rrg-pbellec \
+  ++hydra.launcher.timeout_min=1000 \
+  ++hydra.launcher.mem_gb=4 \
+  ++hydra.launcher.gpus_per_node=1 \
+  ++hydra.launcher.cpus_per_task=4
+
 # train one model on all subjects
 python src/train.py --multirun  \
   hydra/launcher=submitit_slurm \
   ++hydra.launcher.account=rrg-pbellec \
-  ++hydra.launcher.timeout_min=900 \
+  ++hydra.launcher.timeout_min=1000 \
   ++hydra.launcher.mem_gb=4 \
   ++hydra.launcher.gpus_per_node=1 \
-  ++hydra.launcher.cpus_per_task=4 \
+  ++hydra.launcher.cpus_per_task=4
 
 # scaling over subjects
 python src/train.py --multirun  \
