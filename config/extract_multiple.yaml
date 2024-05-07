@@ -1,0 +1,10 @@
+---
+defaults:
+  - _self_
+  - hydra: extract
+
+horizon: 1
+convlayer_index: -1
+n_sessions_list: [0.25, 0.5, 1, 2, 4]
+# passing model path is necessary for evaluation
+model_path: ???

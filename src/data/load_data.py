@@ -240,7 +240,7 @@ def load_hcp_dset_path(
     for name, set in zip(["train", "val", "test"], [train_subjects, val_subjects, test_subjects]):
         data_list = []
         for sub in set:
-            cur_sub_path = subject_path_template.format(sub=sub, n_sessions=n_sessions, scale=atlas_scale)
+            cur_sub_path = subject_path_template.format(sub=sub, n_sessions=n_sessions)
             data_list.append(cur_sub_path)
         data_list.sort()
         data_dict[name] = data_list
@@ -449,7 +449,6 @@ def get_model_data(
         if subject in participant_id:
             df_phenotype.loc[subject, "path"] = p
     selected_path = df_phenotype.loc[participant_id, "path"].values.tolist()
-    log.info(len(selected_path))
     data = load_data(data_file, selected_path, dtype="data")
 
     if "r2" in measure:
