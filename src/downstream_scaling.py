@@ -18,9 +18,11 @@ from sklearn.linear_model import (
     Ridge,
     RidgeClassifier,
 )
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, GroupKFold, GroupShuffleSplit
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.svm import LinearSVC, LinearSVR
+
+from src.data.load_data import load_hcp_groups
 
 baseline_details = {
     "connectome": {
@@ -75,6 +77,11 @@ def main(params: DictConfig) -> None:
     log.info(f"Output data {output_dir}")
     feature_path = Path(params["feature_path"])
     phenotype_file = Path(params["phenotype_file"])
+    path_restricted = Path(params["path_restricted"])
+    # groups = pd.read_csv(group_file, index_col=0)["Family_ID"]
+
+    k_splits = params["k_splits"]
+    random_splits = params["random_splits"]
 
     for n in n_sessions:
         convlayers_path = feature_path / f"feature_convlayers_sessions-{n}.h5"
@@ -93,6 +100,14 @@ def main(params: DictConfig) -> None:
         # load test set subject path from the training
         with open(test_subjects, "r") as f:
             subj = f.read().splitlines()
+            
+        # filter out participants IDs from file paths
+        participant_id = [
+        p.split("/")[-1].split("sub-")[-1].split("_")[0] for p in subj
+        ]
+
+        groups = load_hcp_groups(path_restricted=path_restricted,
+                                 subjects=list(map(int, participant_id)))
             
         
         # add additional infos to the baseline features depending on which are present
@@ -149,7 +164,7 @@ def main(params: DictConfig) -> None:
                 random_state=42,
             )
             clf_names = ["SVM", "LogisticR", "Ridge", "MLP"]
-            
+
         else:
             raise ValueError("predict_variable must be either sex, gender, age, or one of the factor scores")
 
@@ -157,7 +172,7 @@ def main(params: DictConfig) -> None:
             "feature": [],
             "score": [],
             "classifier": [],
-            # "fold": [],
+            "fold": [],
         }
 
         for measure in baseline_details:
@@ -188,25 +203,35 @@ def main(params: DictConfig) -> None:
                     dataset["data"], dataset["label"]
                 )
             )  # only one fold
-            for clf_name, clf in zip(clf_names, [svm, lr, rr, mlp]):
-                clf.fit(dataset["data"][tng], dataset["label"][tng])
-                score = clf.score(dataset["data"][tst], dataset["label"][tst])
-                log.info(f"{measure} - {clf_name} score: {score:.3f}")
-                baselines_df["feature"].append(measure)
-                baselines_df["score"].append(score)
-                baselines_df["classifier"].append(clf_name)
+
+            if random_splits:
+                cv = GroupShuffleSplit(n_splits=k_splits, random_state=42)
+            else:
+                cv = GroupKFold(n_splits=k_splits)
+
+            for k, (tng, tst) in enumerate(cv.split(dataset["data"], dataset["label"], groups=groups)):
+                log.info(f"Fold {k+1} out of {k_splits}...")
+
+                for clf_name, clf in zip(clf_names, [svm, lr, rr, mlp]):
+                    clf.fit(dataset["data"][tng], dataset["label"][tng])
+                    score = clf.score(dataset["data"][tst], dataset["label"][tst])
+                    log.info(f"{measure} - {clf_name} score: {score:.3f}")
+                    baselines_df["feature"].append(measure)
+                    baselines_df["score"].append(score)
+                    baselines_df["classifier"].append(clf_name)
+                    baselines_df["fold"].append(k)
 
         # save the results
         # json for safe keeping
         with open(
-            output_dir / f"simple_classifiers_{params['predict_variable']}_sessions-{n}.json",
+            output_dir / f"simple_classifiers_{params['predict_variable']}_sessions-{n}_splits-{k_splits}.json",
             "w",
         ) as f:
             json.dump(baselines_df, f, indent=4)
 
         baselines_df = pd.DataFrame(baselines_df)
         baselines_df.to_csv(
-            output_dir / f"simple_classifiers_{params['predict_variable']}_sessions-{n}.tsv",
+            output_dir / f"simple_classifiers_{params['predict_variable']}_sessions-{n}_splits-{k_splits}.tsv",
             sep="\t",
         )
 
