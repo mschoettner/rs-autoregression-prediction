@@ -63,6 +63,26 @@ python src/train.py --multirun \
 python src/train.py --multirun \
   hydra=hyperparameters
 
+# train large model
+python src/train.py --multirun  \
+  hydra/launcher=submitit_slurm \
+  ++hydra.launcher.account=rrg-pbellec \
+  ++hydra.launcher.timeout_min=10000 \
+  ++hydra.launcher.mem_gb=4 \
+  ++hydra.launcher.gpus_per_node=1 \
+  ++hydra.launcher.cpus_per_task=4 \
+  ++model.FK=\'128,32,128,32,128,32,128,32,128,32,128,32\' \
+  ++model.M=\'16,8,1\' \
+  ++model.batch_size=205 \
+  ++model.lag=1 \
+  ++model.lr=0.2799 \
+  ++model.lr_thres=0.8269 \
+  ++model.dropout=0.007114 \
+  ++model.seq_length=29 \
+  ++model.nb_epochs=10 \
+  ++model.seq_length=32
+
+
 # Hao-Ting's examples
 # use a small set to make sure the parameter tuning is doing things
 python src/train.py --multirun hydra=hyperparameters ++hydra.launcher.timeout_min=480 ++data.n_sample=-1
