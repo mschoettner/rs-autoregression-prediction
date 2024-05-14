@@ -18,7 +18,7 @@ from sklearn.linear_model import (
     Ridge,
     RidgeClassifier,
 )
-from sklearn.model_selection import StratifiedKFold, GroupKFold, GroupShuffleSplit
+from sklearn.model_selection import KFold, GroupKFold, GroupShuffleSplit, GridSearchCV
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.svm import LinearSVC, LinearSVR
 
@@ -83,6 +83,7 @@ def main(params: DictConfig) -> None:
 
     k_splits = params["k_splits"]
     random_splits = params["random_splits"]
+    param_grid = OmegaConf.to_container(params["param_grid"])
 
     convlayers_path = feature_path / f"feature_convlayers_sessions-{n_sessions}.h5"
     feature_t1_file = feature_path / f"feature_horizon-{params['horizon']}_sessions-{n_sessions}.h5"
@@ -153,17 +154,15 @@ def main(params: DictConfig) -> None:
         
     elif params["predict_variable"] in ["mental_health", "cognition", "processing_speed", "substance_use"]:
         # four baseline models for factor scores
-        svm = LinearSVC(C=100, penalty="l2", max_iter=1000000, random_state=42)
-        lr = LogisticRegression(
-            penalty="l2", max_iter=100000, random_state=42, n_jobs=-1
-        )
-        rr = RidgeClassifier(random_state=42, max_iter=100000)
-        mlp = MLPClassifier(
+        svm = LinearSVR(C=100, max_iter=1000000, random_state=42)
+        lr = LinearRegression(n_jobs=-1)
+        rr = Ridge(random_state=42, max_iter=100000)
+        mlp = MLPRegressor(
             hidden_layer_sizes=(64, 64),
             max_iter=100000,
             random_state=42,
         )
-        clf_names = ["SVM", "LogisticR", "Ridge", "MLP"]
+        clf_names = ["SVM", "LinearR", "Ridge", "MLP"]
 
     else:
         raise ValueError("predict_variable must be either sex, gender, age, or one of the factor scores")
@@ -200,16 +199,18 @@ def main(params: DictConfig) -> None:
         )
         log.info("Start training...")
 
-        tng, tst = next(
-            StratifiedKFold(n_splits=5, shuffle=True).split(
-                dataset["data"], dataset["label"]
-            )
-        )  # only one fold
+        # tng, tst = next(
+        #     StratifiedKFold(n_splits=5, shuffle=True).split(
+        #         dataset["data"], dataset["label"]
+        #     )
+        # )  # only one fold
 
         if random_splits:
             cv = GroupShuffleSplit(n_splits=k_splits, random_state=42)
         else:
             cv = GroupKFold(n_splits=k_splits)
+        ncv = KFold(n_splits=3) # nested cross-validation
+
 
         for k, (tng, tst) in enumerate(cv.split(dataset["data"], dataset["label"], groups=groups)):
             log.info(f"Fold {k+1} out of {k_splits}...")
@@ -219,8 +220,9 @@ def main(params: DictConfig) -> None:
             tng = tng[:n_tng]
 
             for clf_name, clf in zip(clf_names, [svm, lr, rr, mlp]):
-                clf.fit(dataset["data"][tng], dataset["label"][tng])
-                score = clf.score(dataset["data"][tst], dataset["label"][tst])
+                gridsearch = GridSearchCV(clf, param_grid[clf_name], cv=ncv, n_jobs=-1, verbose=1)
+                gridsearch.fit(dataset["data"][tng], dataset["label"][tng])
+                score = gridsearch.score(dataset["data"][tst], dataset["label"][tst])
                 log.info(f"{measure} - {clf_name} score: {score:.3f}")
                 baselines_df["feature"].append(measure)
                 baselines_df["score"].append(score)
