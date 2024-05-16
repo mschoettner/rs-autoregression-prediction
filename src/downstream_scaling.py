@@ -17,10 +17,12 @@ from sklearn.linear_model import (
     LogisticRegression,
     Ridge,
     RidgeClassifier,
+    Lasso,
 )
 from sklearn.model_selection import KFold, GroupKFold, GroupShuffleSplit, GridSearchCV
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.svm import LinearSVC, LinearSVR
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 from src.data.load_data import load_hcp_groups
 
@@ -138,31 +140,39 @@ def main(params: DictConfig) -> None:
             max_iter=100000,
             random_state=42,
         )
-        clf_names = ["SVM", "LogisticR", "Ridge", "MLP"]
+        rf = RandomForestClassifier(n_jobs=-1, random_state=42)
+        clf_names = ["SVM", "LogisticR", "Ridge", "MLP"] #, "RF"]
+        models = [svm, lr, rr, mlp] #, rf]
 
     elif params["predict_variable"] == "age":  # need to fix this
         # four baseline models for age
         svm = LinearSVR(C=100, max_iter=1000000, random_state=42)
         lr = LinearRegression(n_jobs=-1)
         rr = Ridge(random_state=42, max_iter=100000)
+        lasso = Lasso(random_state=42, max_iter=100000)
         mlp = MLPRegressor(
             hidden_layer_sizes=(64, 64),
             max_iter=100000,
             random_state=42,
         )
-        clf_names = ["SVM", "LinearR", "Ridge", "MLP"]
+        rf = RandomForestRegressor(n_jobs=-1, random_state=42)
+        clf_names = ["SVM", "LinearR", "Ridge", "Lasso", "MLP"] #, "RF"]
+        models = [svm, lr, rr, lasso, mlp] #, rf]
         
     elif params["predict_variable"] in ["mental_health", "cognition", "processing_speed", "substance_use"]:
         # four baseline models for factor scores
         svm = LinearSVR(C=100, max_iter=1000000, random_state=42)
         lr = LinearRegression(n_jobs=-1)
         rr = Ridge(random_state=42, max_iter=100000)
+        lasso = Lasso(random_state=42, max_iter=100000)
         mlp = MLPRegressor(
             hidden_layer_sizes=(64, 64),
             max_iter=100000,
             random_state=42,
         )
-        clf_names = ["SVM", "LinearR", "Ridge", "MLP"]
+        rf = RandomForestRegressor(n_jobs=-1, random_state=42)
+        clf_names = ["SVM", "LinearR", "Ridge", "Lasso", "MLP"] #, "RF"]
+        models = [svm, lr, rr, lasso, mlp] #, rf]
 
     else:
         raise ValueError("predict_variable must be either sex, gender, age, or one of the factor scores")
@@ -174,6 +184,8 @@ def main(params: DictConfig) -> None:
         "fold": [],
         "fraction": [],
         "subjects_training": [],
+        "n_sessions": [],
+        "target": [],
     }
 
     for measure in baseline_details:
@@ -219,7 +231,7 @@ def main(params: DictConfig) -> None:
             log.info(f"Using {n_tng} out of {len(tng)} training subjects")
             tng = tng[:n_tng]
 
-            for clf_name, clf in zip(clf_names, [svm, lr, rr, mlp]):
+            for clf_name, clf in zip(clf_names, models):
                 gridsearch = GridSearchCV(clf, param_grid[clf_name], cv=ncv, n_jobs=-1, verbose=1)
                 gridsearch.fit(dataset["data"][tng], dataset["label"][tng])
                 score = gridsearch.score(dataset["data"][tst], dataset["label"][tst])
@@ -230,6 +242,8 @@ def main(params: DictConfig) -> None:
                 baselines_df["fold"].append(k)
                 baselines_df["fraction"].append(fraction_sample)
                 baselines_df["subjects_training"].append(n_tng)
+                baselines_df["n_sessions"].append(n_sessions)
+                baselines_df["target"].append(params["predict_variable"])
 
     # save the results
     # json for safe keeping
