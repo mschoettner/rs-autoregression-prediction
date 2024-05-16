@@ -13,8 +13,8 @@ model_path: ???
 predict_variable: gender
 phenotype_file: inputs/behavior/hcp_pheno.csv
 random_state: 42
-k_splits: 5
-random_splits: False
+k_splits: 100
+random_splits: True
 
 fraction_sample: 0.1
 n_sessions: 0.25
@@ -22,9 +22,9 @@ n_sessions: 0.25
 hydra:
   sweeper:
     params:
-      fraction_sample: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
-      n_sessions: 0.25, 0.5, 1, 2, 4
-      predict_variable: mental_health, cognition, processing_speed, substance_use, gender, age
+      fraction_sample: 0.1 , 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
+      n_sessions: 0.25 , 0.5, 1, 2, 4
+      predict_variable: mental_health , cognition, processing_speed, substance_use, gender, age
 
 
 param_grid:
@@ -37,12 +37,17 @@ param_grid:
     C: [0.1, 1, 10, 100, 1000]
   Ridge:
     alpha: [0.1, 1, 10, 100, 1000]
+  Lasso:
+    alpha: [0.1, 1, 10, 100, 1000]
   MLP:
     hidden_layer_sizes: [[64,64]]
     # activation: ['logistic', 'tanh', 'relu']
     # solver: ['lbfgs', 'sgd', 'adam']
     # alpha: [0.0001, 0.001, 0.01, 0.1, 1]
     # learning_rate: ['constant', 'invscaling', 'adaptive']
+  RF:
+    n_estimators: [10, 100, 1000]
+    max_depth: [10, 100, 1000]
 
 # passing extracted feature path is necessary for evaluation
 feature_path: ???
