@@ -74,100 +74,101 @@ def main(params: DictConfig) -> None:
             f.write("%s\n" % item)
 
     log.info("Load model")
-    model = load_model(model_path)
-    if isinstance(model, torch.nn.Module):
-        model.to(torch.device(device)).eval()
-
-    
-    for n in n_sessions:
-        # data file for this n
-        data_file = f"inputs/connectomes/sourcedata/hcp_h5/hcp_{n}.h5"
-        # subject list for this n
-        subj_list = []
-        for sub in participant_id:
-            cur_sub_path = subject_path_template.format(sub=sub, n=n)
-            subj_list.append(cur_sub_path)
-        
-        # save file paths per n sessions
-        with open(output_dir / f"test_set_connectome_sessions-{n}.txt", "w") as f:
-            for item in subj_list:
-                f.write("%s\n" % item)
-        
-        for horizon in horizons:
-            output_horizon_path = (
-                Path(output_dir) / f"feature_horizon-{horizon}_sessions-{n}.h5"
-            )
-            with h5py.File(output_horizon_path, "a") as f:
-                f.attrs["complied_date"] = str(datetime.today())
-                f.attrs["based_on_model"] = str(model_path)
-                f.attrs["horizon"] = horizon
-            
-            log.info(f"Predicting t+{horizon} of each subject, using {n} sessions")
-            for h5_dset_path in tqdm(subj_list):
-                # get the prediction of t+1
-                r2, Z, Y = predict_horizon(
-                    model=model,
-                    seq_length=params["model"]["seq_length"],
-                    horizon=horizon,
-                    data_file=data_file,
-                    dset_path=h5_dset_path,
-                    batch_size=params["model"]["batch_size"],
-                    stride=params["model"]["time_stride"],
-                    standardize=False,  # the ts is already standardized
-                )
-                # save the original output to a h5 file
-                with h5py.File(output_horizon_path, "a") as f:
-                    for value, key in zip([r2, Z, Y], ["r2map", "Z", "Y"]):
-                        new_ds_path = h5_dset_path.replace("timeseries", key)
-                        f[new_ds_path] = value
-
-        output_conv_path = Path(output_dir) / f"feature_convlayers_sessions-{n}.h5"
-        # save the model parameters in the h5 files
-        with h5py.File(output_conv_path, "a") as f:
-            f.attrs["complied_date"] = str(datetime.today())
-            f.attrs["based_on_model"] = str(model_path)
-
-        log.info("extract convo layers")
+    with torch.no_grad():
         model = load_model(model_path)
         if isinstance(model, torch.nn.Module):
             model.to(torch.device(device)).eval()
-        for h5_dset_path in tqdm(subj_list):
-            convlayers = extract_convlayers(
-                data_file=data_file,
-                h5_dset_path=h5_dset_path,
-                model=model,
-                seq_length=params["model"]["seq_length"],
-                time_stride=params["model"]["time_stride"],
-                lag=params["model"]["lag"],
-                compute_edge_index=compute_edge_index,
-                thres=thres,
-            )
-            # save the original output to a h5 file
+
+        
+        for n in n_sessions:
+            # data file for this n
+            data_file = f"inputs/connectomes/sourcedata/hcp_h5/hcp_{n}.h5"
+            # subject list for this n
+            subj_list = []
+            for sub in participant_id:
+                cur_sub_path = subject_path_template.format(sub=sub, n=n)
+                subj_list.append(cur_sub_path)
+            
+            # save file paths per n sessions
+            with open(output_dir / f"test_set_connectome_sessions-{n}.txt", "w") as f:
+                for item in subj_list:
+                    f.write("%s\n" % item)
+            
+            for horizon in horizons:
+                output_horizon_path = (
+                    Path(output_dir) / f"feature_horizon-{horizon}_sessions-{n}.h5"
+                )
+                with h5py.File(output_horizon_path, "a") as f:
+                    f.attrs["complied_date"] = str(datetime.today())
+                    f.attrs["based_on_model"] = str(model_path)
+                    f.attrs["horizon"] = horizon
+                
+                log.info(f"Predicting t+{horizon} of each subject, using {n} sessions")
+                for h5_dset_path in tqdm(subj_list):
+                    # get the prediction of t+1
+                    r2, Z, Y = predict_horizon(
+                        model=model,
+                        seq_length=params["model"]["seq_length"],
+                        horizon=horizon,
+                        data_file=data_file,
+                        dset_path=h5_dset_path,
+                        batch_size=params["model"]["batch_size"],
+                        stride=params["model"]["time_stride"],
+                        standardize=False,  # the ts is already standardized
+                    )
+                    # save the original output to a h5 file
+                    with h5py.File(output_horizon_path, "a") as f:
+                        for value, key in zip([r2, Z, Y], ["r2map", "Z", "Y"]):
+                            new_ds_path = h5_dset_path.replace("timeseries", key)
+                            f[new_ds_path] = value
+
+            output_conv_path = Path(output_dir) / f"feature_convlayers_sessions-{n}.h5"
+            # save the model parameters in the h5 files
             with h5py.File(output_conv_path, "a") as f:
-                new_ds_path = h5_dset_path.replace("timeseries", "convlayers")
-                f[new_ds_path] = convlayers.numpy()
-            convlayers_F = [
-                int(F)
-                for i, F in enumerate(params["model"]["FK"].split(","))
-                if i % 2 == 0
-            ]
-            # get the pooling features of the assigned layer
-            for method in ["average", "max", "std", "1dconv"]:
-                features = pooling_convlayers(
-                    convlayers=convlayers,
-                    pooling_methods=method,
-                    pooling_target="parcel",
-                    layer_index=params["convlayer_index"],
-                    layer_structure=convlayers_F,
+                f.attrs["complied_date"] = str(datetime.today())
+                f.attrs["based_on_model"] = str(model_path)
+
+            log.info("extract convo layers")
+            model = load_model(model_path)
+            if isinstance(model, torch.nn.Module):
+                model.to(torch.device(device)).eval()
+            for h5_dset_path in tqdm(subj_list):
+                convlayers = extract_convlayers(
+                    data_file=data_file,
+                    h5_dset_path=h5_dset_path,
+                    model=model,
+                    seq_length=params["model"]["seq_length"],
+                    time_stride=params["model"]["time_stride"],
+                    lag=params["model"]["lag"],
+                    compute_edge_index=compute_edge_index,
+                    thres=thres,
                 )
                 # save the original output to a h5 file
                 with h5py.File(output_conv_path, "a") as f:
-                    new_ds_path = h5_dset_path.replace("timeseries", method)
-                    f[new_ds_path] = features
+                    new_ds_path = h5_dset_path.replace("timeseries", "convlayers")
+                    f[new_ds_path] = convlayers.numpy()
+                convlayers_F = [
+                    int(F)
+                    for i, F in enumerate(params["model"]["FK"].split(","))
+                    if i % 2 == 0
+                ]
+                # get the pooling features of the assigned layer
+                for method in ["average", "max", "std", "1dconv"]:
+                    features = pooling_convlayers(
+                        convlayers=convlayers,
+                        pooling_methods=method,
+                        pooling_target="parcel",
+                        layer_index=params["convlayer_index"],
+                        layer_structure=convlayers_F,
+                    )
+                    # save the original output to a h5 file
+                    with h5py.File(output_conv_path, "a") as f:
+                        new_ds_path = h5_dset_path.replace("timeseries", method)
+                        f[new_ds_path] = features
 
-        # save the original output to a h5 file
-        with h5py.File(output_conv_path, "a") as f:
-            f.attrs["convolution_layers_F"] = convlayers_F
+            # save the original output to a h5 file
+            with h5py.File(output_conv_path, "a") as f:
+                f.attrs["convolution_layers_F"] = convlayers_F
 
 
 if __name__ == "__main__":
