@@ -129,9 +129,6 @@ def main(params: DictConfig) -> None:
                 f.attrs["based_on_model"] = str(model_path)
 
             log.info("extract convo layers")
-            model = load_model(model_path)
-            if isinstance(model, torch.nn.Module):
-                model.to(torch.device(device)).eval()
             for h5_dset_path in tqdm(subj_list):
                 convlayers = extract_convlayers(
                     data_file=data_file,
