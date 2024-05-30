@@ -17,11 +17,11 @@ job_logging:
       filename: ${hydra.runtime.output_dir}/${hydra.job.name}.log
 # launcher:
 #   submitit_folder: ${hydra.sweep.dir}/.submitit/%j
-#   timeout_min: 120
-#   cpus_per_task: 4
+#   timeout_min: 360
+#   cpus_per_task: 1
 #   gpus_per_node: 1
 #   tasks_per_node: 1
-#   mem_gb: 4
+#   mem_gb: 16
 #   nodes: 1
 #   name: ${hydra.job.name}
 #   stderr_to_stdout: false
