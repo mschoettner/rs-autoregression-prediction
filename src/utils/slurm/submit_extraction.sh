@@ -27,3 +27,10 @@ python src/extract.py --multirun \
     ++hydra.launcher.account=rrg-pbellec \
     ++hydra.launcher.timeout_min=180 \
     ++hydra.launcher.gpus_per_node=1
+
+# Using large model
+python src/extract.py --multirun \
+    ++model_path='/home/mschoett/projects/rrg-pbellec/mschoett/rs-autoregression-prediction/outputs/downstream_scaling/large_model/model.pkl' \
+    ++hydra.launcher.account=rrg-pbellec \
+    ++hydra.launcher.timeout_min=360 \
+    ++hydra.launcher.gpus_per_node=1
