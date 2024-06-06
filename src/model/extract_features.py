@@ -7,6 +7,9 @@ import torch.nn as nn
 from fmri_autoreg.data.load_data import make_seq
 from src.data.load_data import load_data
 from torch_geometric.nn import ChebConv
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class SaveOutput:
@@ -36,38 +39,53 @@ def extract_convlayers(
     thres: float = 0.9,
 ) -> torch.tensor:
     """Extract conv layers from the pretrained model for one subject."""
-    # load data. No standardisation as it's already done.
-    ts = load_data(data_file, h5_dset_path, dtype="data")
-    X_ts = make_seq(
-        ts,
-        seq_length,
-        time_stride,
-        lag,
-    )[
-        0
-    ]  # just one subject and the X
+    with torch.no_grad():
 
-    # register the hooks to the pretrain model
-    save_output = SaveOutput()
-    hook_handles = []
-    for _, module in model.named_modules():
-        if isinstance(module, ChebConv):
-            handle = module.register_forward_hook(save_output)
-            hook_handles.append(handle)
-    device = next(model.parameters()).device
-    # pass the data through pretrained model
-    X_ts = torch.tensor(X_ts, dtype=torch.float32, device=device)
-    _ = model(X_ts)
-    convlayers = []
-    # size of each layer (time series, parcel, layer feature F)
-    for layer in save_output.outputs:
-        layer = _module_output_to_cpu(layer)
-        convlayers.append(layer)
-    # stack along the feature dimension
-    convlayers = torch.cat(convlayers, dim=-1)
-    # remove the hooks
-    for handle in hook_handles:
-        handle.remove()
+        # load data. No standardisation as it's already done.
+        ts = load_data(data_file, h5_dset_path, dtype="data")
+        X_ts = make_seq(
+            ts,
+            seq_length,
+            time_stride,
+            lag,
+        )[
+            0
+        ]  # just one subject and the X
+        # register the hooks to the pretrain model
+        save_output = SaveOutput()
+        hook_handles = []
+        for _, module in model.named_modules():
+            if isinstance(module, ChebConv):
+                handle = module.register_forward_hook(save_output)
+                hook_handles.append(handle)
+        device = next(model.parameters()).device
+        # pass the data through pretrained model
+        X_ts = torch.tensor(X_ts, dtype=torch.float32, device=device)
+        log.info("Passing data through model")
+        _ = model(X_ts)
+        convlayers = []
+        # size of each layer (time series, parcel, layer feature F)
+        for layer in save_output.outputs:
+            layer = _module_output_to_cpu(layer)
+            convlayers.append(layer)
+        # stack along the feature dimension
+        convlayers = torch.cat(convlayers, dim=-1)
+
+        # TODO: implement looping over batches to not overload gpu memory
+        # dump X_ts in dataloader
+        # tng_dataset = Dataset(tng_data_h5)
+        #     tng_dataloader = DataLoader(
+        #         tng_dataset,
+        #         batch_size=params["batch_size"],
+        #         shuffle=True,
+        #         drop_last=True,
+        #         num_workers=params["num_workers"],
+        #         pin_memory=cuda_is_available()
+        #     )
+
+        # remove the hooks
+        for handle in hook_handles:
+            handle.remove()
     return convlayers
 
 
