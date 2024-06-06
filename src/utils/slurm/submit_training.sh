@@ -55,6 +55,28 @@ python src/train.py --multirun \
   ++data.sessions=0.25,0.5,1,2,4 \
   ++random_state=1,2,3,5,8,13,21,34,55,89
 
+# Combined scaling
+python src/train.py --multirun \
+  hydra/launcher=submitit_slurm \
+  ++hydra.launcher.account=rrg-pbellec \
+  ++hydra.launcher.timeout_min=1000 \
+  ++hydra.launcher.mem_gb=4 \
+  ++hydra.launcher.gpus_per_node=1 \
+  ++hydra.launcher.cpus_per_task=4 \
+  ++data.n_sample=10,20,30,40,50,60,70,80,90 \
+  ++data.sessions=0.25,0.5,1,2,4 \
+  ++random_state=1,2,3,5,8,13,21,34,55,89 \
+  # ++data.n_sample=100,200,300,400,500,600,700,800,900,-1 \
+  # ++model.FK=\'8,6,8,6,8,6,8,6,8,6,8,6\' \
+  # ++model.M=\'32,16,8,1\' \
+  # ++model.batch_size=188 \
+  # ++model.lag=1 \
+  # ++model.lr=0.02396 \
+  # ++model.lr_thres=0.9764 \
+  # ++model.dropout=0.007114 \
+  # ++model.seq_length=23 \
+  # ++model.nb_epochs=20 \
+
 # run hyperparameter tuning with old parameters
 python src/train.py --multirun \
   hydra=hyperparameters_old \
