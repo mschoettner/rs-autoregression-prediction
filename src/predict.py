@@ -1,26 +1,30 @@
 """
-Execute at the root of the repo, not in the code directory.
+Scaling of the downstream prediction. Taking the outputs from the pretrained model,
+how well does performance of the downstream prediction scale? 
 """
-import argparse
+
 import json
 import logging
 from pathlib import Path
 
-import h5py
 import hydra
 import numpy as np
 import pandas as pd
-from hydra.utils import get_original_cwd, instantiate, to_absolute_path
+
 from omegaconf import DictConfig, OmegaConf
 from sklearn.linear_model import (
     LinearRegression,
     LogisticRegression,
     Ridge,
     RidgeClassifier,
+    Lasso,
 )
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold, GroupKFold, GroupShuffleSplit, GridSearchCV
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.svm import LinearSVC, LinearSVR
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+
+from src.data.load_data import load_hcp_groups
 
 baseline_details = {
     "connectome": {
@@ -60,19 +64,27 @@ baseline_details = {
     },
 }
 
+
 log = logging.getLogger(__name__)
 
 
 @hydra.main(version_base="1.3", config_path="../config", config_name="predict")
 def main(params: DictConfig) -> None:
     from src.data.load_data import get_model_data, load_h5_data_path
-
+    
     # parse parameters
     output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
     output_dir = Path(output_dir)
     log.info(f"Output data {output_dir}")
     feature_path = Path(params["feature_path"])
     phenotype_file = Path(params["phenotype_file"])
+    path_restricted = Path(params["path_restricted"])
+    # groups = pd.read_csv(group_file, index_col=0)["Family_ID"]
+
+    k_splits = params["k_splits"]
+    random_splits = params["random_splits"]
+    param_grid = OmegaConf.to_container(params["param_grid"])
+
     convlayers_path = feature_path / "feature_convlayers.h5"
     feature_t1_file = feature_path / f"feature_horizon-{params['horizon']}.h5"
     test_subjects = feature_path / "test_set_connectome.txt"
@@ -80,13 +92,24 @@ def main(params: DictConfig) -> None:
     model_config = OmegaConf.load(
         feature_path.parent / "model/.hydra/config.yaml"
     )
+    # combine the autoregression parameters with the other parameters
     params = OmegaConf.merge(model_config, params)
     log.info(params)
-
+    
     # load test set subject path from the training
     with open(test_subjects, "r") as f:
         subj = f.read().splitlines()
+        
+    # filter out participants IDs from file paths
+    participant_id = [
+    p.split("/")[-1].split("sub-")[-1].split("_")[0] for p in subj
+    ]
 
+    groups = load_hcp_groups(path_restricted=path_restricted,
+                                subjects=list(map(int, participant_id)))
+        
+    
+    # add additional infos to the baseline features depending on which are present
     for key in baseline_details:
         if "r2" in key:
             baseline_details[key]["data_file"] = feature_t1_file
@@ -97,8 +120,9 @@ def main(params: DictConfig) -> None:
             baseline_details[key]["data_file_pattern"] = subj
         else:
             pass
-    log.info(f"Predicting {params['predict_variable']}.")
-
+    
+    log.info(f"Predicting {params['predict_variable']}")
+    
     if params["predict_variable"] == "sex" or params["predict_variable"] == "gender":
         # four baseline models for sex
         svm = LinearSVC(C=100, penalty="l2", max_iter=1000000, random_state=42)
@@ -111,34 +135,40 @@ def main(params: DictConfig) -> None:
             max_iter=100000,
             random_state=42,
         )
-        clf_names = ["SVM", "LogisticR", "Ridge", "MLP"]
+        rf = RandomForestClassifier(n_jobs=-1, random_state=42)
+        clf_names = ["SVM", "LogisticR", "Ridge", "MLP"] #, "RF"]
+        models = [svm, lr, rr, mlp] #, rf]
 
     elif params["predict_variable"] == "age":  # need to fix this
         # four baseline models for age
         svm = LinearSVR(C=100, max_iter=1000000, random_state=42)
         lr = LinearRegression(n_jobs=-1)
         rr = Ridge(random_state=42, max_iter=100000)
+        lasso = Lasso(random_state=42, max_iter=100000)
         mlp = MLPRegressor(
             hidden_layer_sizes=(64, 64),
             max_iter=100000,
             random_state=42,
         )
-        clf_names = ["SVM", "LinearR", "Ridge", "MLP"]
+        rf = RandomForestRegressor(n_jobs=-1, random_state=42)
+        clf_names = ["SVM", "LinearR", "Ridge", "Lasso", "MLP"] #, "RF"]
+        models = [svm, lr, rr, lasso, mlp] #, rf]
         
     elif params["predict_variable"] in ["mental_health", "cognition", "processing_speed", "substance_use"]:
         # four baseline models for factor scores
-        svm = LinearSVR(C=100, penalty="l2", max_iter=1000000, random_state=42)
-        lr = LogisticRegression(
-            penalty="l2", max_iter=100000, random_state=42, n_jobs=-1
-        )
-        rr = RidgeClassifier(random_state=42, max_iter=100000)
-        mlp = MLPClassifier(
+        svm = LinearSVR(C=100, max_iter=1000000, random_state=42)
+        lr = LinearRegression(n_jobs=-1)
+        rr = Ridge(random_state=42, max_iter=100000)
+        lasso = Lasso(random_state=42, max_iter=100000)
+        mlp = MLPRegressor(
             hidden_layer_sizes=(64, 64),
             max_iter=100000,
             random_state=42,
         )
-        clf_names = ["SVM", "LogisticR", "Ridge", "MLP"]
-        
+        rf = RandomForestRegressor(n_jobs=-1, random_state=42)
+        clf_names = ["SVM", "LinearR", "Ridge", "Lasso", "MLP"] #, "RF"]
+        models = [svm, lr, rr, lasso, mlp] #, rf]
+
     else:
         raise ValueError("predict_variable must be either sex, gender, age, or one of the factor scores")
 
@@ -146,7 +176,8 @@ def main(params: DictConfig) -> None:
         "feature": [],
         "score": [],
         "classifier": [],
-        # "fold": [],
+        "fold": [],
+        "target": [],
     }
 
     for measure in baseline_details:
@@ -162,7 +193,6 @@ def main(params: DictConfig) -> None:
                 random_state=params["random_state"],
             )
         log.info(f"found {len(dset_path)} subjects with {measure} data.")
-
         dataset = get_model_data(
             baseline_details[measure]["data_file"],
             dset_path=dset_path,
@@ -172,54 +202,45 @@ def main(params: DictConfig) -> None:
             log=log,
         )
         log.info("Start training...")
-        # sfk = StratifiedKFold(n_splits=5, shuffle=True)
-        # folds = sfk.split(dataset["data"], dataset["label"])
-        # average_performance = {clf_name: [] for clf_name in clf_names}
-        # for i, (tng, tst) in enumerate(folds, start=1):
-        #     log.info(f"Fold {i}")
-        #     for clf_name, clf in zip(clf_names, [svm, lr, rr, mlp]):
-        #         clf.fit(dataset["data"][tng], dataset["label"][tng])
-        #         score = clf.score(
-        #             dataset["data"][tst], dataset["label"][tst]
-        #         )
-        #         log.info(
-        #             f"{measure} - {clf_name} fold {i}: {score:.3f}"
-        #         )
-        #         baselines_df["feature"].append(measure)
-        #         baselines_df["score"].append(score)
-        #         baselines_df["classifier"].append(clf_name)
-        #         baselines_df["fold"].append(i)
-        #         average_performance[clf_name].append(score)
-        # for clf_name in clf_names:
-        #     acc = np.mean(average_performance[clf_name])
-        #     log.info(
-        #         f"{measure} - {clf_name} average score: {acc:.3f}"
-        #     )
 
-        tng, tst = next(
-            StratifiedKFold(n_splits=5, shuffle=True).split(
-                dataset["data"], dataset["label"]
-            )
-        )  # only one fold
-        for clf_name, clf in zip(clf_names, [svm, lr, rr, mlp]):
-            clf.fit(dataset["data"][tng], dataset["label"][tng])
-            score = clf.score(dataset["data"][tst], dataset["label"][tst])
-            log.info(f"{measure} - {clf_name} score: {score:.3f}")
-            baselines_df["feature"].append(measure)
-            baselines_df["score"].append(score)
-            baselines_df["classifier"].append(clf_name)
+        # tng, tst = next(
+        #     StratifiedKFold(n_splits=5, shuffle=True).split(
+        #         dataset["data"], dataset["label"]
+        #     )
+        # )  # only one fold
+
+        if random_splits:
+            cv = GroupShuffleSplit(n_splits=k_splits, random_state=42)
+        else:
+            cv = GroupKFold(n_splits=k_splits)
+        ncv = KFold(n_splits=3) # nested cross-validation
+
+
+        for k, (tng, tst) in enumerate(cv.split(dataset["data"], dataset["label"], groups=groups)):
+            log.info(f"Fold {k+1} out of {k_splits}...")
+
+            for clf_name, clf in zip(clf_names, models):
+                gridsearch = GridSearchCV(clf, param_grid[clf_name], cv=ncv, n_jobs=-1, verbose=1)
+                gridsearch.fit(dataset["data"][tng], dataset["label"][tng])
+                score = gridsearch.score(dataset["data"][tst], dataset["label"][tst])
+                log.info(f"{measure} - {clf_name} score: {score:.3f}")
+                baselines_df["feature"].append(measure)
+                baselines_df["score"].append(score)
+                baselines_df["classifier"].append(clf_name)
+                baselines_df["fold"].append(k)
+                baselines_df["target"].append(params["predict_variable"])
 
     # save the results
     # json for safe keeping
     with open(
-        output_dir / f"simple_classifiers_{params['predict_variable']}.json",
+        output_dir / f"simple_classifiers_{params['predict_variable']}_splits-{k_splits}.json",
         "w",
     ) as f:
         json.dump(baselines_df, f, indent=4)
 
     baselines_df = pd.DataFrame(baselines_df)
     baselines_df.to_csv(
-        output_dir / f"simple_classifiers_{params['predict_variable']}.tsv",
+        output_dir / f"simple_classifiers_{params['predict_variable']}_splits-{k_splits}.tsv",
         sep="\t",
     )
 
