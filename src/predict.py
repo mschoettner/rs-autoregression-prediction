@@ -127,7 +127,7 @@ def main(params: DictConfig) -> None:
         
     elif params["predict_variable"] in ["mental_health", "cognition", "processing_speed", "substance_use"]:
         # four baseline models for factor scores
-        svm = LinearSVC(C=100, penalty="l2", max_iter=1000000, random_state=42)
+        svm = LinearSVR(C=100, penalty="l2", max_iter=1000000, random_state=42)
         lr = LogisticRegression(
             penalty="l2", max_iter=100000, random_state=42, n_jobs=-1
         )
