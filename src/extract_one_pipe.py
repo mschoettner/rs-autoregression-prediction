@@ -56,9 +56,11 @@ def main(params: DictConfig) -> None:
     subj_list.extend(subj["train"])
 
     # save test data path to a text file for easy future reference
-    with open(output_dir / "test_set_connectome.txt", "w") as f:
-        for item in subj["test"]:
-            f.write("%s\n" % item)
+    with open(Path(output_dir) / "train_test_split.json", "w") as f:
+        json.dump(subj, f, indent=2)
+    # with open(output_dir / "test_set_connectome.txt", "w") as f:
+    #     for item in subj["test"]:
+    #         f.write("%s\n" % item)
 
     log.info("Load model")
     with torch.no_grad():
