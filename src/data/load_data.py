@@ -390,6 +390,7 @@ def get_model_data(
     label: str = "sex",
     pooling_target: str = "max",
     log: logging = logging,
+    return_dataframe: bool = False,
 ) -> Dict[str, np.ndarray]:
     """Get the data from pretrained model for the downstrean task.
 
@@ -464,9 +465,11 @@ def get_model_data(
         data = np.array(data)
         data = StandardScaler().fit_transform(data)
 
-    labels = df_phenotype.loc[participant_id, label].values
-    log.info(f"data shape: {data.shape}")
-    log.info(f"label shape: {labels.shape}")
+    if return_dataframe:
+        data = pd.DataFrame(data, index=participant_id)
+        labels = df_phenotype.loc[participant_id, label]
+    else:
+        labels = df_phenotype.loc[participant_id, label].values
     dataset = {"data": data, "label": labels}
     return dataset
 

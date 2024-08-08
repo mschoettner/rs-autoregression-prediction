@@ -52,15 +52,19 @@ def main(params: DictConfig) -> None:
     with open(model_path.parent / "train_test_split.json", "r") as f:
         subj = json.load(f)
 
-    subj_list = subj["test"]
-    subj_list.extend(subj["train"])
+    subj_list = list(subj["test"])
+    subj_list.extend(list(subj["train"]))
 
-    # save test data path to a text file for easy future reference
+    # save the subjects for each split
     with open(Path(output_dir) / "train_test_split.json", "w") as f:
         json.dump(subj, f, indent=2)
-    # with open(output_dir / "test_set_connectome.txt", "w") as f:
-    #     for item in subj["test"]:
-    #         f.write("%s\n" % item)
+    # save the paths for each subject
+    with open(output_dir / "subject_paths.txt", "w") as f:
+        for set in subj:
+            print(len(subj[set]))
+            print(subj[set])
+            for item in subj[set]:
+                f.write("%s\n" % item)
 
     log.info("Load model")
     with torch.no_grad():
@@ -106,7 +110,7 @@ def main(params: DictConfig) -> None:
         # model = load_model(model_path)
         # if isinstance(model, torch.nn.Module):
         #     model.to(torch.device(device)).eval()
-        log.info(f"Total:{torch.cuda.get_device_properties(0).total_memory} \nReserved: {torch.cuda.memory_reserved(0)} \nAllocated: {torch.cuda.memory_allocated(0)}")
+        # log.info(f"Total:{torch.cuda.get_device_properties(0).total_memory} \nReserved: {torch.cuda.memory_reserved(0)} \nAllocated: {torch.cuda.memory_allocated(0)}")
         for h5_dset_path in tqdm(subj_list):
             convlayers = extract_convlayers(
                 data_file=params["data"]["data_file"],
@@ -118,7 +122,7 @@ def main(params: DictConfig) -> None:
                 compute_edge_index=compute_edge_index,
                 thres=thres,
             )
-            log.info(f"Total:{torch.cuda.get_device_properties(0).total_memory} \nReserved: {torch.cuda.memory_reserved(0)} \nAllocated: {torch.cuda.memory_allocated(0)}")
+            # log.info(f"Total:{torch.cuda.get_device_properties(0).total_memory} \nReserved: {torch.cuda.memory_reserved(0)} \nAllocated: {torch.cuda.memory_allocated(0)}")
             # save the original output to a h5 file
             with h5py.File(output_conv_path, "a") as f:
                 new_ds_path = h5_dset_path.replace("timeseries", "convlayers")

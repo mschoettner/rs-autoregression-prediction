@@ -15,3 +15,30 @@ percentage_sample: 100
 random_state: 42
 # passing extracted feature path is necessary for evaluation
 feature_path: ???
+
+hydra:
+  sweeper:
+    params:
+      predict_variable: mental_health , cognition, processing_speed, substance_use, gender, age
+
+param_grid:
+  SVM:
+    C: [0.1, 1, 10, 100, 1000]
+    dual: [True]
+  LinearR:
+    fit_intercept: [True]
+  LogisticR:
+    C: [0.1, 1, 10, 100, 1000]
+  Ridge:
+    alpha: [0.1, 1, 10, 100, 1000]
+  Lasso:
+    alpha: [0.1, 1, 10, 100, 1000]
+  MLP:
+    hidden_layer_sizes: [[64,64]]
+    # activation: ['logistic', 'tanh', 'relu']
+    # solver: ['lbfgs', 'sgd', 'adam']
+    # alpha: [0.0001, 0.001, 0.01, 0.1, 1]
+    # learning_rate: ['constant', 'invscaling', 'adaptive']
+  RF:
+    n_estimators: [10, 100, 1000]
+    max_depth: [10, 100, 1000]

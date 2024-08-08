@@ -1,6 +1,5 @@
 """
-Scaling of the downstream prediction. Taking the outputs from the pretrained model,
-how well does performance of the downstream prediction scale? 
+Prediction of the different targets using linear models and the features extracted from the autoregression model.
 """
 
 import json
@@ -75,9 +74,11 @@ def main(params: DictConfig) -> None:
     # parse parameters
     output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
     output_dir = Path(output_dir)
-    log.info(f"Output data {output_dir}")
     feature_path = Path(params["feature_path"])
     phenotype_file = Path(params["phenotype_file"])
+    # log.info(f"Output data {output_dir}")
+    # log.info(f"Feature data {feature_path}")
+    # log.info(f"Phenotype data {phenotype_file}")
     # path_restricted = Path(params["path_restricted"])
     # groups = pd.read_csv(group_file, index_col=0)["Family_ID"]
 
@@ -88,6 +89,7 @@ def main(params: DictConfig) -> None:
     convlayers_path = feature_path / "feature_convlayers.h5"
     feature_t1_file = feature_path / f"feature_horizon-{params['horizon']}.h5"
     # test_subjects = feature_path / "test_set_connectome.txt"
+    subject_file = feature_path / "subject_paths.txt"
     # load test set subject path from the training
     with open(feature_path / "train_test_split.json", "r") as f:
         subj = json.load(f)
@@ -100,14 +102,17 @@ def main(params: DictConfig) -> None:
     params = OmegaConf.merge(model_config, params)
     log.info(params)
     
-    # # load test set subject path from the training
-    # with open(test_subjects, "r") as f:
-    #     subj = f.read().splitlines()
-    #     
-    # # filter out participants IDs from file paths
-    # participant_id = [
-    # p.split("/")[-1].split("sub-")[-1].split("_")[0] for p in subj
-    # ]
+    # load subject paths
+    with open(subject_file, "r") as f:
+        subject_paths = f.read().splitlines()
+    # load the subject ids
+    tng = [
+    p.split("/")[-1].split("sub-")[-1].split("_")[0] for p in subj["train"]
+    ]
+    tst = [
+        p.split("/")[-1].split("sub-")[-1].split("_")[0] for p in subj["test"]
+    ]
+
 
     # groups = load_hcp_groups(path_restricted=path_restricted,
     #                             subjects=list(map(int, participant_id)))
@@ -121,7 +126,7 @@ def main(params: DictConfig) -> None:
             baseline_details[key]["data_file"] = convlayers_path
         elif "connectome" in key:
             baseline_details[key]["data_file"] = params["data"]["data_file"]
-            baseline_details[key]["data_file_pattern"] = subj
+            baseline_details[key]["data_file_pattern"] = subject_paths
         else:
             pass
     
@@ -180,7 +185,7 @@ def main(params: DictConfig) -> None:
         "feature": [],
         "score": [],
         "classifier": [],
-        "fold": [],
+        # "fold": [],
         "target": [],
     }
 
@@ -204,7 +209,10 @@ def main(params: DictConfig) -> None:
             measure=measure,
             label=params["predict_variable"],
             log=log,
+            return_dataframe=True,
         )
+        # log.info("Labels/targets", dataset["label"])
+        # log.info("Features", dataset["data"])
         log.info("Start training...")
 
         # tng, tst = next(
@@ -222,14 +230,11 @@ def main(params: DictConfig) -> None:
 
         #for k, (tng, tst) in enumerate(cv.split(dataset["data"], dataset["label"], groups=groups)):
         #    log.info(f"Fold {k+1} out of {k_splits}...")
-        
-        tng = subj["train"]
-        tst = subj["test"]
 
         for clf_name, clf in zip(clf_names, models):
             gridsearch = GridSearchCV(clf, param_grid[clf_name], n_jobs=-1, verbose=1)
-            gridsearch.fit(dataset["data"][tng], dataset["label"][tng])
-            score = gridsearch.score(dataset["data"][tst], dataset["label"][tst])
+            gridsearch.fit(dataset["data"].loc[tng], dataset["label"].loc[tng])
+            score = gridsearch.score(dataset["data"].loc[tst], dataset["label"].loc[tst])
             log.info(f"{measure} - {clf_name} score: {score:.3f}")
             baselines_df["feature"].append(measure)
             baselines_df["score"].append(score)
