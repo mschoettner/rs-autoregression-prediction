@@ -22,6 +22,7 @@ from omegaconf import DictConfig
 from seaborn import lineplot
 from sklearn.metrics import r2_score
 from src.data.load_data import create_shortened_hcp_data
+from src.model.parameter_helper import assemble_FK
 
 
 def convert_bytes(num):
@@ -64,6 +65,8 @@ def main(params: DictConfig) -> None:
     log.info(f"Random seed {params['random_state']}")
     log.info(params["model"]["model"])
     params["model"]["nb_epochs"] = int(params["model"]["nb_epochs"])
+    if params["model"]["FK_assembled"] == False:
+        params["model"]["FK"] = assemble_FK(params["model"]["n_layers"], params["model"]["n_channels"], params["model"]["n_polynomials"])
 
     # flatten the parameters
     device = "cuda:0" if torch.cuda.is_available() else "cpu"

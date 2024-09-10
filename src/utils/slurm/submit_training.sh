@@ -104,6 +104,10 @@ python src/train.py --multirun  \
   ++model.nb_epochs=10 \
   ++model.seq_length=32
 
+# run hyperparameter tuning with individual layers, F, and K
+python src/train.py --multirun \
+  hydra=hyperparameters \
+  ++model.FK_assembled=False
 
 # Hao-Ting's examples
 # use a small set to make sure the parameter tuning is doing things
