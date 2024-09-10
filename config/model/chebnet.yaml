@@ -5,7 +5,11 @@ defaults:
 
 model: Chebnet
 FC_type: nonshared_uni
+FK_assembled: True
 FK: 8,3,8,3,8,3
+n_layers:
+n_channels:
+n_polynomials:
 M: '1'
 use_bn: true
 dropout: 0

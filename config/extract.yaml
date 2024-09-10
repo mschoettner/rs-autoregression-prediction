@@ -7,3 +7,5 @@ horizon: 1
 convlayer_index: -1
 # passing model path is necessary for evaluation
 model_path: ???
+
+random_state: 42

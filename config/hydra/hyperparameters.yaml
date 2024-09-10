@@ -27,13 +27,18 @@ sweeper:
     model:
       nb_epochs: uniform(16, 24, discrete=True)
       # FK: choices(["\'128,32,128,32,128,32,128,32,128,32,128,32\'", "\'8,6,8,6,8,6,8,6,8,6,8,6\'", "\'8,3,8,3,8,3\'"])
-      FK: choices(["\'128,32,128,32,128,32,128,32,128,32,128,32\'"])
+      # FK: choices(["\'128,32,128,32,128,32,128,32,128,32,128,32\'"])
+      n_layers: choices(1, 2, 3, 4, 5)
+      n_channels: choices(32, 64, 128, 256, 512) # F
+      n_polynomials: choices(2, 3, 4, 5, 6, 7, 8) # K
       M: choices(["\'32,16,8,1\'", "\'16,8,1\'"])
       lr: uniform(1e-4, 0.3)
       lr_thres: uniform(1e-6, 1)
       dropout: uniform(1e-4, 0.3)
       batch_size: loguniform(128, 256, discrete=True)
-      seq_length: uniform(12, 32, discrete=True)
+      # seq_length: uniform(12, 32, discrete=True)
+      seq_length: choices(128, 256)
+      # seq_length: choices(16, 32, 64, 128)
 
   experiment:
     name: experiment
@@ -59,9 +64,9 @@ sweeper:
       seed: ${random_state}
 
   worker:
-    n_workers: 10
-    max_broken: 10
-    max_trials: 100
+    n_workers: 9
+    max_broken: 20
+    max_trials: 1000
 
   storage:
     type: legacy
@@ -72,11 +77,11 @@ sweeper:
 
 launcher:
   submitit_folder: ${hydra.sweep.dir}/.submitit/%j
-  timeout_min: 10000
+  timeout_min: 4320
   cpus_per_task: 4
   gpus_per_node: 1
   tasks_per_node: 1
-  mem_gb: 4
+  mem_gb: 16
   nodes: 1
   name: ${hydra.job.name}
   stderr_to_stdout: false
