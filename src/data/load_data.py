@@ -190,6 +190,7 @@ def load_hcp_dset_path(
     test_set: float = 0.15,
     random_state: int = 42,
     premade_split: bool = False,
+    fraction: float = 1,
 ) -> Dict:
     """Load time series of HCP.
     
@@ -236,7 +237,7 @@ def load_hcp_dset_path(
         train_subjects, val_subjects = train_subjects[train_idx], train_subjects[val_idx]
     elif premade_split == True:
         # load premade split
-        split_path = Path(f"inputs/subjects/random_splits/train_test_split_rs-{random_state}.json")
+        split_path = Path(f"inputs/subjects/train_test_splits/train_test_split_rs-{random_state}_fraction-{fraction}.json")
         with open(split_path, "r") as f:
             split_dict = json.load(f)
         train_subjects = split_dict["train"]

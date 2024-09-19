@@ -10,6 +10,7 @@ split: # training and evaluation
   path_restricted: inputs/behavior/hcp_behavioral_RESTRICTED.csv
   path_subjects: inputs/subjects/hcp_without_val.csv
   premade_split: True
+  fraction: 1.0
   val_set: 0.15
   test_set: 0.15
   n_sample: ${data.n_sample}
