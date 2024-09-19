@@ -37,7 +37,7 @@ sweeper:
       dropout: uniform(1e-4, 0.3)
       batch_size: loguniform(128, 256, discrete=True)
       # seq_length: uniform(12, 32, discrete=True)
-      seq_length: choices(128, 256)
+      seq_length: choices(256)
       # seq_length: choices(16, 32, 64, 128)
 
   experiment:
@@ -81,7 +81,7 @@ launcher:
   cpus_per_task: 4
   gpus_per_node: 1
   tasks_per_node: 1
-  mem_gb: 16
+  mem_gb: 32
   nodes: 1
   name: ${hydra.job.name}
   stderr_to_stdout: false
