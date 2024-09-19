@@ -109,6 +109,18 @@ python src/train.py --multirun \
   hydra=hyperparameters \
   ++model.FK_assembled=False
 
+# train model for scaling on same subjects
+python src/train.py --multirun  \
+  hydra/launcher=submitit_slurm \
+  ++hydra.launcher.account=rrg-pbellec \
+  ++hydra.launcher.timeout_min=1000 \
+  ++hydra.launcher.mem_gb=16 \
+  ++hydra.launcher.gpus_per_node=1 \
+  ++hydra.launcher.cpus_per_task=4 \
+  ++data.n_sample=100,200,300,400,500,600,700,800,-1 \
+  ++random_state=1,2,3,5,8,13,21,34,55,89 \
+  ++data.sessions=0.25,0.5,1,2,4
+
 # Hao-Ting's examples
 # use a small set to make sure the parameter tuning is doing things
 python src/train.py --multirun hydra=hyperparameters ++hydra.launcher.timeout_min=480 ++data.n_sample=-1
