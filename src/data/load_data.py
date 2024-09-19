@@ -189,6 +189,7 @@ def load_hcp_dset_path(
     val_set: float = 0.15,
     test_set: float = 0.15,
     random_state: int = 42,
+    premade_split: bool = False,
 ) -> Dict:
     """Load time series of HCP.
     
@@ -223,15 +224,27 @@ def load_hcp_dset_path(
             random_state=random_state,
         )
     
-    # train-test-val split, not splitting families
-    groups = load_hcp_groups(path_restricted, subjects)
-    gss_test = GroupShuffleSplit(n_splits=1, test_size=test_set, random_state=random_state)
-    gss_val = GroupShuffleSplit(n_splits=1, test_size=val_set / (1 - test_set), random_state=random_state)
-    train_idx, test_idx = next(gss_test.split(subjects,  groups=groups))
-    train_subjects, test_subjects = subjects[train_idx], subjects[test_idx]
-    groups_train = groups[train_subjects]
-    train_idx, val_idx = next(gss_val.split(train_subjects, groups=groups_train))
-    train_subjects, val_subjects = train_subjects[train_idx], train_subjects[val_idx]
+    if premade_split == False:
+        # train-test-val split, not splitting families
+        groups = load_hcp_groups(path_restricted, subjects)
+        gss_test = GroupShuffleSplit(n_splits=1, test_size=test_set, random_state=random_state)
+        gss_val = GroupShuffleSplit(n_splits=1, test_size=val_set / (1 - test_set), random_state=random_state)
+        train_idx, test_idx = next(gss_test.split(subjects,  groups=groups))
+        train_subjects, test_subjects = subjects[train_idx], subjects[test_idx]
+        groups_train = groups[train_subjects]
+        train_idx, val_idx = next(gss_val.split(train_subjects, groups=groups_train))
+        train_subjects, val_subjects = train_subjects[train_idx], train_subjects[val_idx]
+    elif premade_split == True:
+        # load premade split
+        split_path = Path(f"inputs/subjects/random_splits/train_test_split_rs-{random_state}.json")
+        with open(split_path, "r") as f:
+            split_dict = json.load(f)
+        train_subjects = split_dict["train"]
+        test_subjects = split_dict["test"]
+        try:
+            val_subjects = split_dict["val"]
+        except KeyError:
+            val_subjects = test_subjects
     
     # construct path
     subject_path_template = "/rest/sub-{sub}/sessions-{n_sessions}/sub-{sub}_task-rest_sessions-{n_sessions}_desc-timeseries_scale-3"

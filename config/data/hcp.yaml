@@ -8,7 +8,8 @@ n_sample: -1
 split: # training and evaluation
   _target_: src.data.load_data.load_hcp_dset_path
   path_restricted: inputs/behavior/hcp_behavioral_RESTRICTED.csv
-  path_subjects: inputs/subjects/hcp_complete_rest.csv
+  path_subjects: inputs/subjects/hcp_without_val.csv
+  premade_split: True
   val_set: 0.15
   test_set: 0.15
   n_sample: ${data.n_sample}
