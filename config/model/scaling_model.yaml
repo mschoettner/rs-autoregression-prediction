@@ -1,0 +1,16 @@
+nb_epochs: 15
+lr: 0.1
+lr_thres: 0.35
+lr_patience: 4
+weight_decay: 0
+batch_size: 175
+num_workers: 4
+time_stride: 1
+lag: 1
+seq_length: 128
+edge_index_thres: 0.9
+n_layers: 2
+n_channels: 256
+n_polynomials: 5
+dropout: 0.22
+FK_assembled: False
