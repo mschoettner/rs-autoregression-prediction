@@ -117,9 +117,21 @@ python src/train.py --multirun  \
   ++hydra.launcher.mem_gb=16 \
   ++hydra.launcher.gpus_per_node=1 \
   ++hydra.launcher.cpus_per_task=4 \
-  ++data.fraction=0.2,0.4,0.6,0.8,1.0 \
+  ++data.split.fraction=0.2,0.4,0.6,0.8,1.0 \
   ++random_state=1,2,3,5,8,13,21,34,55,89 \
   ++data.sessions=0.25,0.5,1,2,4
+
+# rerun failed job
+python src/train.py --multirun  \
+  hydra/launcher=submitit_slurm \
+  ++hydra.launcher.account=rrg-pbellec \
+  ++hydra.launcher.timeout_min=2000 \
+  ++hydra.launcher.mem_gb=16 \
+  ++hydra.launcher.gpus_per_node=1 \
+  ++hydra.launcher.cpus_per_task=4 \
+  ++data.split.fraction=1.0 \
+  ++random_state=8 \
+  ++data.sessions=4
 
 # test premade split
 python src/train.py --multirun  \
@@ -130,7 +142,7 @@ python src/train.py --multirun  \
   ++hydra.launcher.gpus_per_node=1 \
   ++hydra.launcher.cpus_per_task=4 \
   ++data.sessions=0.25 \
-  ++data.fraction=0.2 \
+  ++data.split.fraction=0.2 \
   ++random_state=1
 
 # Hao-Ting's examples
