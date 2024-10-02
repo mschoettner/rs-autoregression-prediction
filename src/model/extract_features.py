@@ -8,6 +8,8 @@ from fmri_autoreg.data.load_data import make_seq
 from src.data.load_data import load_data
 from torch_geometric.nn import ChebConv
 import logging
+from torch.utils.data import DataLoader
+from fmri_autoreg.data.load_data import Dataset
 
 log = logging.getLogger(__name__)
 
@@ -37,6 +39,8 @@ def extract_convlayers(
     lag: int,
     compute_edge_index: bool,
     thres: float = 0.9,
+    batching: bool = True,
+    batch_size: int = 100,
 ) -> torch.tensor:
     """Extract conv layers from the pretrained model for one subject."""
     with torch.no_grad():
@@ -54,34 +58,46 @@ def extract_convlayers(
         # register the hooks to the pretrain model
         save_output = SaveOutput()
         hook_handles = []
+        n_layers = 0
         for _, module in model.named_modules():
             if isinstance(module, ChebConv):
+                n_layers += 1
                 handle = module.register_forward_hook(save_output)
                 hook_handles.append(handle)
         device = next(model.parameters()).device
         # pass the data through pretrained model
-        X_ts = torch.tensor(X_ts, dtype=torch.float32, device=device)
         log.info("Passing data through model")
-        _ = model(X_ts)
+
+        n_batches = 0
+        if batching:
+            # pass sequences in batches to avoid memory overload
+            for i in range(0, X_ts.shape[0], batch_size):
+                n_batches += 1
+                X_ts_batch = X_ts[i : i + batch_size]
+                X_ts_batch = torch.tensor(X_ts_batch, dtype=torch.float32, device=device)
+                _ = model(X_ts_batch)
+        else:
+            X_ts = torch.tensor(X_ts, dtype=torch.float32, device=device)
+            _ = model(X_ts)
         convlayers = []
         # size of each layer (time series, parcel, layer feature F)
         for layer in save_output.outputs:
             layer = _module_output_to_cpu(layer)
             convlayers.append(layer)
+
+        # get dimensions right when batching
+        if batching:
+            convlayers_reordered = []
+            for i in range(n_layers):
+                for j in range(i, len(convlayers), n_layers):
+                    convlayers_reordered.append(convlayers[j])
+            convlayers = []
+            for i in range(0, len(convlayers_reordered), n_batches):
+                print(i)
+                convlayers.append(torch.cat(convlayers_reordered[i : i + n_batches], dim=0))
+            
         # stack along the feature dimension
         convlayers = torch.cat(convlayers, dim=-1)
-
-        # TODO: implement looping over batches to not overload gpu memory
-        # dump X_ts in dataloader
-        # tng_dataset = Dataset(tng_data_h5)
-        #     tng_dataloader = DataLoader(
-        #         tng_dataset,
-        #         batch_size=params["batch_size"],
-        #         shuffle=True,
-        #         drop_last=True,
-        #         num_workers=params["num_workers"],
-        #         pin_memory=cuda_is_available()
-        #     )
 
         # remove the hooks
         for handle in hook_handles:
